@@ -1,0 +1,2 @@
+# Compatibility with the singular filename.
+-r requirements.txt
