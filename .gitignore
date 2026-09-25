@@ -1,9 +1,62 @@
-.venv/
-__pycache__/
-*.py[cod]
-.pytest_cache/
+# Environment variables and local secrets
 .env
 .env.*
 !.env.example
+secrets/
+
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Build and packaging artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Tests, coverage and static-analysis caches
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.pyre/
+
+# Runtime data and generated exports
+*.log
+*.pid
+*.sqlite
+*.sqlite3
+*.db
+celerybeat-schedule*
+uploads/
+exports/
+storage/
+
+# IDE and editor settings
 .idea/
 .vscode/
+*.code-workspace
+*.swp
+*.swo
+*~
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Alembic migrations, docs and seed scripts are source files and must be committed.

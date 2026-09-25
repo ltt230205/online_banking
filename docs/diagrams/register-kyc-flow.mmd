@@ -1,0 +1,10 @@
+flowchart TD
+    A[Nhập thông tin đăng ký] --> B{Username/email hợp lệ?}
+    B -- Không --> X[Trả lỗi validation]
+    B -- Có --> C[Hash password, tạo User CUSTOMER]
+    C --> D[Tạo Customer: NOT_SUBMITTED]
+    D --> E[Gửi thông báo đăng ký]
+    E --> F[Customer nộp hồ sơ KYC]
+    F --> G[Tạo KYC Request PENDING]
+    G --> H[Cập nhật Customer KYC PENDING]
+    H --> I[Ghi audit log]
