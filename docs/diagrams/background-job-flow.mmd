@@ -1,0 +1,11 @@
+flowchart TD
+    A[User yêu cầu export report] --> B[Tạo jobs PENDING]
+    B --> C[Đẩy Celery task với job_id]
+    C --> D[Worker nhận task]
+    D --> E[Job PROCESSING]
+    E --> F[Query dữ liệu theo quyền + tạo file]
+    F --> G{Thành công?}
+    G -- Có --> H[Lưu result_location; SUCCESS]
+    G -- Không --> I[Lưu lỗi an toàn; FAILED]
+    H --> J[Notification]
+    I --> J

@@ -1,52 +1,107 @@
-# Online Banking API
+# Banking Management System
 
-Bộ khởi tạo môi trường phát triển với Python 3.12, FastAPI và PostgreSQL 17.
+Nền móng giai đoạn 1 cho bài tập lớn **Phát triển phần mềm hướng dịch vụ**: phân tích yêu cầu, SRS, use case, flow, ERD, kiến trúc, PostgreSQL schema, SQLAlchemy models, Alembic migration và seed data.
 
-## Chạy bằng Docker
+> Giai đoạn này chưa triển khai FastAPI router, JWT, transfer/payment service, Celery, export file hoặc frontend. `app/main.py` chỉ là skeleton/healthcheck có sẵn từ ban đầu.
 
-Mở Docker Desktop, chọn Linux containers, sau đó chạy trong thư mục dự án:
+## Requirements
 
-```powershell
-Copy-Item .env.example .env
-docker compose up --build -d
-docker compose ps
+- Python 3.12
+- Docker Desktop với Linux containers
+- PostgreSQL 17 chạy bằng Docker Compose
+
+## Architecture
+
+Kiến trúc mục tiêu là modular service-oriented architecture trong một FastAPI application:
+
+```text
+Client → FastAPI/Auth/RBAC → Router → Service → Repository → PostgreSQL
+                                      ├→ External adapters
+                                      └→ Celery → Redis/Worker
 ```
 
-Nếu đã có `.env`, giữ lại cấu hình hiện tại. Mật khẩu mẫu chỉ dùng để phát triển local.
+Chi tiết: [SRS](docs/SRS.md), [Use Cases](docs/USE_CASES.md), [Flows](docs/FLOWS.md), [Architecture](docs/ARCHITECTURE.md).
 
-- API: http://localhost:8000
-- Swagger UI: http://localhost:8000/docs
-- Kiểm tra database: http://localhost:8000/health
-- PostgreSQL: `localhost:5433`, tên database và tài khoản lấy từ `.env`.
+## Database và ERD
 
-API đợi PostgreSQL sẵn sàng trước khi khởi động. Trong Docker, API kết nối tới
-host `db` và cổng `5432`; khi chạy Python local, API đọc host/port từ `.env`.
+PostgreSQL dùng `NUMERIC(19,4)` cho tiền, `VARCHAR + CHECK` cho lifecycle, soft-delete trên master data, optimistic `version`, audit log riêng và ledger `transaction_entries` phục vụ sao kê.
 
-```powershell
-docker compose logs -f api db
-docker compose down
-```
+- [ERD và quyết định thiết kế](docs/ERD.md)
+- [Data dictionary và transaction safety](docs/DATABASE_DESIGN.md)
+- [Mermaid ERD](docs/diagrams/erd.mmd)
 
-Dữ liệu được lưu trong volume `postgres_data` và được giữ khi chạy `docker compose down`.
-Biến `POSTGRES_*` khởi tạo tài khoản/database khi volume còn trống; sửa `.env`
-không tự đổi tài khoản của database đã có dữ liệu.
-
-## Chạy FastAPI bằng Python local
+## Cài môi trường Python
 
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-# Tạo .env từ .env.example nếu chưa có.
-docker compose up -d db
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
 ```
 
-Không chạy đồng thời API local và API Docker trên cùng cổng. Nếu đã chạy API Docker,
-dùng `docker compose stop api` trước khi khởi động API local.
+Tạo `.env` nếu chưa có:
 
-`requirements.txt` chứa các thư viện; `requirement.txt` là file tương thích với
-cách viết số ít và có thể dùng cùng `pip install -r requirement.txt`.
-Không commit `.env` hoặc `.venv`.
+```powershell
+Copy-Item .env.example .env
+```
 
-Tham khảo: [FastAPI Docker](https://fastapi.tiangolo.com/deployment/docker/),
-[PostgreSQL Docker image](https://hub.docker.com/_/postgres).
+Các giá trị trong `.env.example` chỉ dành cho local. Đổi `POSTGRES_PASSWORD` và `SEED_DEFAULT_PASSWORD` ở môi trường khác.
+
+## Khởi động PostgreSQL
+
+Compose ở giai đoạn 1 chỉ chạy database:
+
+```powershell
+docker compose up -d db
+docker compose ps
+docker compose logs -f db
+```
+
+PostgreSQL bind tại `127.0.0.1:5433` theo cấu hình mặc định và lưu dữ liệu trong volume `postgres_data`.
+
+## Chạy migration
+
+```powershell
+.\.venv\Scripts\python.exe -m alembic upgrade head
+.\.venv\Scripts\python.exe -m alembic current
+```
+
+Rollback schema ban đầu trong database local dùng `alembic downgrade base`; thao tác này xóa các bảng nên không dùng khi cần giữ dữ liệu.
+
+## Seed database
+
+```powershell
+$env:SEED_DEFAULT_PASSWORD = "mật-khẩu-local-của-bạn"
+.\.venv\Scripts\python.exe -m scripts.seed_data
+Remove-Item Env:SEED_DEFAULT_PASSWORD
+```
+
+Nếu không đặt biến, script dùng password mẫu trong `.env.example`. Script seed idempotent và database chỉ nhận password hash Argon2.
+
+Seed gồm:
+
+- Roles `ADMIN`, `EMPLOYEE`, `CUSTOMER`, permissions và role mappings.
+- Users `admin`, `employee`, `customer1`, `customer2`.
+- Hai customer KYC VERIFIED.
+- Account `1000000001` có 20.000.000 VND và `1000000002` có 10.000.000 VND.
+- Payee, invoice, giao dịch nội bộ cùng ledger entries và notification mẫu.
+
+## Kiểm tra
+
+```powershell
+.\.venv\Scripts\python.exe -m compileall -q app scripts alembic
+.\.venv\Scripts\python.exe -m alembic check
+docker compose exec db psql -U banking -d online_banking -c "\dt"
+```
+
+`alembic check` phải báo không có operation mới nếu ORM models và migration đồng bộ.
+
+## Tắt database
+
+```powershell
+docker compose down
+```
+
+Lệnh trên giữ volume. Chỉ dùng `docker compose down -v` nếu chủ động muốn xóa toàn bộ dữ liệu local.
+
+## Giai đoạn tiếp theo
+
+Sau khi thiết kế được duyệt: tạo schemas/repositories/services/routers; triển khai JWT rotation, RBAC/ownership, OTP, transaction locking, adapters mock, Celery/Redis, test tự động và export. Không đưa nghiệp vụ vào router.

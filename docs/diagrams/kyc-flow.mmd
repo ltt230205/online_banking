@@ -1,0 +1,10 @@
+flowchart TD
+    A[Employee mở KYC PENDING] --> B[Kiểm tra hồ sơ]
+    B --> C{Hợp lệ?}
+    C -- Có --> D[KYC Request APPROVED]
+    D --> E[Customer VERIFIED + verified_at]
+    C -- Không --> F[Nhập lý do]
+    F --> G[KYC Request REJECTED]
+    G --> H[Customer REJECTED]
+    E --> I[Tăng version; audit; notification]
+    H --> I

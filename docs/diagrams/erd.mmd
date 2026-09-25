@@ -1,0 +1,43 @@
+erDiagram
+    roles ||--o{ users : assigns
+    roles ||--o{ role_permissions : grants
+    permissions ||--o{ role_permissions : contains
+    users ||--o| customers : owns_profile
+    users ||--o{ refresh_tokens : owns
+    users ||--o{ password_reset_tokens : owns
+    users ||--o{ otp_codes : verifies
+    users ||--o{ notifications : receives
+    users ||--o{ audit_logs : performs
+    users ||--o{ jobs : requests
+    customers ||--o{ kyc_requests : submits
+    customers ||--o{ accounts : owns
+    customers ||--o{ payees : saves
+    customers ||--o{ invoices : billed
+    accounts ||--o{ transactions : source
+    accounts ||--o{ transactions : destination
+    transactions ||--o{ transaction_entries : posts
+    accounts ||--o{ transaction_entries : ledger
+    invoices ||--o{ payments : attempts
+    accounts ||--o{ payments : funds
+    transactions ||--o| payments : settles
+    transactions ||--o{ otp_codes : authorizes
+    payments ||--o{ otp_codes : authorizes
+
+    roles { smallint id PK string name UK }
+    permissions { int id PK string code UK string resource string action }
+    role_permissions { smallint role_id PK_FK int permission_id PK_FK }
+    users { bigint id PK smallint role_id FK string username UK string email UK string password_hash string status boolean is_deleted }
+    customers { bigint id PK bigint user_id UK_FK string customer_code UK string identity_number UK string kyc_status int version boolean is_deleted }
+    kyc_requests { bigint id PK bigint customer_id FK string status jsonb document_data bigint reviewed_by FK }
+    accounts { bigint id PK bigint customer_id FK string account_number UK numeric balance string status int version boolean is_deleted }
+    payees { bigint id PK bigint customer_id FK bigint linked_account_id FK string bank_code string account_number boolean is_deleted }
+    transactions { bigint id PK string transaction_code UK string transaction_type string status bigint source_account_id FK bigint destination_account_id FK numeric amount numeric fee }
+    transaction_entries { bigint id PK bigint transaction_id FK bigint account_id FK string entry_type numeric amount numeric balance_before numeric balance_after }
+    invoices { bigint id PK bigint customer_id FK string invoice_code UK string service_type numeric amount string status int version boolean is_deleted }
+    payments { bigint id PK bigint invoice_id FK bigint account_id FK bigint transaction_id UK_FK string status numeric amount }
+    otp_codes { bigint id PK bigint user_id FK bigint transaction_id FK bigint payment_id FK string purpose string code_hash timestamp expires_at }
+    refresh_tokens { bigint id PK bigint user_id FK string token_hash UK timestamp expires_at }
+    password_reset_tokens { bigint id PK bigint user_id FK string token_hash UK timestamp expires_at }
+    notifications { bigint id PK bigint user_id FK string notification_type string event_type string status boolean is_read }
+    audit_logs { bigint id PK bigint user_id FK string action string resource_type string resource_id jsonb before_data jsonb after_data }
+    jobs { bigint id PK bigint requested_by FK string job_type string status jsonb parameters int progress }

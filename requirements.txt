@@ -2,3 +2,6 @@ fastapi==0.141.1
 uvicorn[standard]==0.53.0
 psycopg[binary]==3.3.6
 pydantic-settings==2.15.0
+SQLAlchemy==2.0.43
+alembic==1.16.5
+pwdlib[argon2]==0.2.1
