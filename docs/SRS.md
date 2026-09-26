@@ -2,7 +2,7 @@
 
 ## 1. Giới thiệu
 
-Tài liệu mô tả yêu cầu giai đoạn thiết kế cho hệ thống quản lý ngân hàng trực tuyến. Backend mục tiêu là FastAPI nhưng giai đoạn này chỉ gồm phân tích, kiến trúc và cơ sở dữ liệu.
+Tài liệu mô tả yêu cầu cho hệ thống quản lý ngân hàng trực tuyến được triển khai bằng FastAPI, SQLAlchemy và PostgreSQL.
 
 ## 2. Mục tiêu hệ thống
 
@@ -216,4 +216,4 @@ Phân nhóm validation (400/422), unauthenticated (401), forbidden (403), not fo
 - Một customer có nhiều account. VND là mặc định nhưng schema hỗ trợ currency khác.
 - Gateway/email hiện dùng mock; không có core banking thật.
 - Dữ liệu seed chỉ dùng local. Yêu cầu pháp lý, hạn mức và tỷ giá thực tế nằm ngoài bài tập.
-- Giai đoạn hiện tại không triển khai API/business logic; model và migration là nền móng để review.
+- Backend hiện triển khai theo modular service-oriented architecture; external bank và notification provider vẫn là mock adapter phục vụ demo.
