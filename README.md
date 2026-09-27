@@ -5,7 +5,8 @@ Backend ngân hàng phục vụ bài tập lớn **Phát triển phần mềm h�
 ## Công nghệ
 
 - Python 3.12, FastAPI, Pydantic v2
-- SQLAlchemy 2.x, PostgreSQL 17, Alembic
+- SQLAlchemy 2.x (`AsyncSession` + SQL thuần), PostgreSQL 17, Alembic
+- Data Access Layer kiểu micro-ORM: SQL tham số hóa + immutable dataclass; xem [hướng dẫn DAL](docs/DATA_ACCESS_LAYER.md)
 - PyJWT, OAuth2PasswordBearer, Argon2 password hashing
 - pytest và FastAPI TestClient
 - Docker Compose
