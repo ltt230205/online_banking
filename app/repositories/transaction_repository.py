@@ -1,52 +1,63 @@
 from datetime import datetime
+from decimal import Decimal
 
-from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.entities import Account, Transaction
+from app.common.db import execute, query, query_one, scalar, where
+from app.repositories.rows import TransactionRow
 
 
 class TransactionRepository:
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    def get(self, transaction_id: int, *, lock: bool = False) -> Transaction | None:
-        query = select(Transaction).where(Transaction.id == transaction_id)
-        if lock:
-            query = query.with_for_update()
-        return self.session.scalar(query)
+    async def get(self, transaction_id: int, *, lock: bool = False) -> TransactionRow | None:
+        sql = "SELECT * FROM transactions WHERE id=:id" + (" FOR UPDATE" if lock else "")
+        return await query_one(self.session, sql, {"id": transaction_id}, TransactionRow)
 
-    def list(
-        self,
-        *,
-        customer_id: int | None,
-        page: int,
-        page_size: int,
-        transaction_type: str | None,
-        status: str | None,
-        from_date: datetime | None,
-        to_date: datetime | None,
-    ) -> tuple[list[Transaction], int]:
-        query = select(Transaction)
+    async def create(self, *, code: str, kind: str, source_id: int, destination_id: int | None, destination_number: str | None,
+                     bank_code: str | None, destination_name: str | None, amount: Decimal, currency: str,
+                     description: str | None, initiated_by: int) -> TransactionRow:
+        transaction_id = await scalar(
+            self.session,
+            "INSERT INTO transactions(transaction_code, transaction_type, status, source_account_id, destination_account_id, "
+            "destination_account_number, destination_bank_code, destination_account_name, amount, fee, currency, description, initiated_by) "
+            "VALUES (:code, :kind, 'PENDING', :source, :destination, :number, :bank_code, :name, :amount, 0, :currency, :description, :user) RETURNING id",
+            {"code": code, "kind": kind, "source": source_id, "destination": destination_id, "number": destination_number,
+             "bank_code": bank_code, "name": destination_name, "amount": amount, "currency": currency,
+             "description": description, "user": initiated_by},
+        )
+        return await self.get(transaction_id)
+
+    async def set_status(self, transaction_id: int, status: str, completed_at: datetime | None = None, failure_reason: str | None = None) -> TransactionRow:
+        await execute(
+            self.session,
+            "UPDATE transactions SET status=:status, completed_at=:completed_at, failure_reason=:failure_reason WHERE id=:id",
+            {"id": transaction_id, "status": status, "completed_at": completed_at, "failure_reason": failure_reason},
+        )
+        return await self.get(transaction_id)
+
+    async def list(self, *, customer_id: int | None, page: int, page_size: int, transaction_type: str | None,
+                   status: str | None, from_date: datetime | None, to_date: datetime | None) -> tuple[list[TransactionRow], int]:
+        clause, params = where({"transaction_type": transaction_type, "status": status},
+                               {"transaction_type": "t.transaction_type", "status": "t.status"})
+        predicates: list[str] = []
+        if clause:
+            predicates.append(clause.removeprefix(" WHERE "))
         if customer_id is not None:
-            account_ids = select(Account.id).where(Account.customer_id == customer_id)
-            query = query.where(
-                or_(Transaction.source_account_id.in_(account_ids), Transaction.destination_account_id.in_(account_ids))
-            )
-        if transaction_type:
-            query = query.where(Transaction.transaction_type == transaction_type)
-        if status:
-            query = query.where(Transaction.status == status)
-        if from_date:
-            query = query.where(Transaction.created_at >= from_date)
-        if to_date:
-            query = query.where(Transaction.created_at <= to_date)
-        total = int(self.session.scalar(select(func.count()).select_from(query.subquery())) or 0)
-        items = list(
-            self.session.scalars(
-                query.order_by(Transaction.created_at.desc(), Transaction.id.desc())
-                .offset((page - 1) * page_size)
-                .limit(page_size)
-            )
+            predicates.append("(t.source_account_id IN (SELECT id FROM accounts WHERE customer_id=:customer_id) OR "
+                              "t.destination_account_id IN (SELECT id FROM accounts WHERE customer_id=:customer_id))")
+            params["customer_id"] = customer_id
+        if from_date is not None:
+            predicates.append("t.created_at>=:from_date")
+            params["from_date"] = from_date
+        if to_date is not None:
+            predicates.append("t.created_at<=:to_date")
+            params["to_date"] = to_date
+        conditions = " WHERE " + " AND ".join(predicates) if predicates else ""
+        total = int(await scalar(self.session, "SELECT COUNT(*) FROM transactions t" + conditions, params) or 0)
+        items = await query(
+            self.session, "SELECT t.* FROM transactions t" + conditions + " ORDER BY t.created_at DESC, t.id DESC OFFSET :offset LIMIT :limit",
+            {**params, "offset": (page - 1) * page_size, "limit": page_size}, TransactionRow,
         )
         return items, total
