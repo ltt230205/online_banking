@@ -1,0 +1,12 @@
+flowchart TD
+    A[Chọn invoice + account] --> B[Validate KYC, invoice UNPAID, amount]
+    B --> C[Kiểm tra số dư sơ bộ]
+    C --> D[Tạo payment và transaction OTP_REQUIRED]
+    D --> E[Generate + Verify OTP]
+    E --> F[BEGIN + lock account và invoice]
+    F --> G{Recheck hợp lệ?}
+    G -- Không --> H[ROLLBACK + FAILED]
+    G -- Có --> I[Debit account + ledger entry]
+    I --> J[Invoice PAID + Payment/Transaction SUCCESS]
+    J --> K[COMMIT]
+    K --> L[Audit + Notification]

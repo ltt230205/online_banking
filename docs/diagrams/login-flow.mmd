@@ -1,0 +1,11 @@
+flowchart TD
+    A[Nhập username/password] --> B{Thông tin đúng và user ACTIVE?}
+    B -- Không --> X[Ghi LOGIN_FAILED và trả lỗi chung]
+    B -- Có --> C{Bật 2FA?}
+    C -- Có --> D[Tạo OTP LOGIN_2FA, hết hạn 5 phút]
+    D --> E{OTP hợp lệ?}
+    E -- Không --> Y[Tăng failed_attempts / khóa OTP]
+    E -- Có --> F[Đánh dấu OTP đã dùng]
+    C -- Không --> G[Phát hành access + refresh token]
+    F --> G
+    G --> H[Ghi LOGIN_SUCCESS]

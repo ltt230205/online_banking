@@ -1,0 +1,12 @@
+flowchart TD
+    A[Create Interbank Transfer] --> B[Validate KYC/source/external destination]
+    B --> C[Tạo transaction với snapshot đích ngoài]
+    C --> D[Generate + Verify OTP]
+    D --> E[BEGIN + lock source + recheck balance]
+    E --> F[Đặt PROCESSING và gọi Bank Adapter]
+    F --> G{Gateway accepted?}
+    G -- Không --> H[ROLLBACK hoặc mark FAILED theo kết quả chắc chắn]
+    G -- Có --> I[Debit nguồn + ledger entry]
+    I --> J[SUCCESS + COMMIT]
+    H --> K[Audit + Notification]
+    J --> K

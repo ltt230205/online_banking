@@ -1,0 +1,32 @@
+flowchart LR
+    C[Customer]
+    E[Employee]
+    A[Admin]
+    B[External Bank]
+    M[Email Service]
+    W[Job Worker]
+
+    subgraph System[Banking Management System]
+      UC1((Register / Login / Reset Password))
+      UC2((Manage Profile & Submit KYC))
+      UC3((View Account, Balance, Transactions))
+      UC4((Manage Payee))
+      UC5((Internal Transfer + OTP))
+      UC6((Interbank Transfer + OTP))
+      UC7((View / Pay Invoice + OTP))
+      UC8((Reports / Statements / Export))
+      UC9((View Notification))
+      UC10((Approve / Reject KYC))
+      UC11((Manage Users))
+      UC12((View Audit Log / System Reports))
+    end
+
+    C --> UC1 & UC2 & UC3 & UC4 & UC5 & UC6 & UC7 & UC8 & UC9
+    E --> UC3 & UC10 & UC8
+    A --> UC8 & UC11 & UC12
+    UC6 --> B
+    UC1 --> M
+    UC5 --> M
+    UC6 --> M
+    UC7 --> M
+    UC8 --> W

@@ -1,0 +1,19 @@
+flowchart TD
+    A[Create Internal Transfer] --> B{Customer VERIFIED?}
+    B -- Không --> Z[Reject]
+    B -- Có --> C[Validate accounts, amount, limits]
+    C --> D{Số dư sơ bộ đủ?}
+    D -- Không --> Z
+    D -- Có --> E[Tạo transaction OTP_REQUIRED]
+    E --> F[Tạo OTP hash, hết hạn 5 phút]
+    F --> G{Verify OTP <= 5 lần?}
+    G -- Không --> H[FAILED / CANCELLED + audit]
+    G -- Có --> I[BEGIN]
+    I --> J[Lock hai account theo thứ tự ID]
+    J --> K{Recheck trạng thái và số dư}
+    K -- Không --> L[ROLLBACK + FAILED]
+    K -- Có --> M[Debit nguồn + Credit đích]
+    M --> N[Tạo 2 ledger entries]
+    N --> O[Transaction SUCCESS]
+    O --> P[COMMIT]
+    P --> Q[Audit + Notification]
