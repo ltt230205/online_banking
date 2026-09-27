@@ -31,5 +31,16 @@ class Settings(BaseSettings):
             database=self.postgres_db,
         ).render_as_string(hide_password=False)
 
+    @property
+    def database_url(self) -> str:
+        return URL.create(
+            drivername="postgresql+psycopg",
+            username=self.postgres_user,
+            password=self.postgres_password.get_secret_value(),
+            host=self.postgres_host,
+            port=self.postgres_port,
+            database=self.postgres_db,
+        ).render_as_string(hide_password=False)
+
 
 settings = Settings()
