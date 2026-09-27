@@ -1,29 +1,28 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import forbidden, not_found
-from app.models.entities import User
 from app.repositories.billing_repository import BillingRepository
 from app.repositories.customer_repository import CustomerRepository
+from app.repositories.rows import InvoiceRow, UserRow
 
 
 class InvoiceService:
-    def __init__(self, session: Session) -> None:
-        self.session = session
+    def __init__(self, session: AsyncSession) -> None:
         self.customers = CustomerRepository(session)
         self.billing = BillingRepository(session)
 
-    def _customer(self, user_id: int):
-        customer = self.customers.get_by_user_id(user_id)
+    async def _customer(self, user_id: int):
+        customer = await self.customers.get_by_user_id(user_id)
         if customer is None:
             raise not_found("CUSTOMER_NOT_FOUND", "Customer profile not found")
         return customer
 
-    def list(self, user: User):
-        return self.billing.list_invoices(self._customer(user.id).id)
+    async def list(self, user: UserRow) -> list[InvoiceRow]:
+        return await self.billing.list_invoices((await self._customer(user.id)).id)
 
-    def get(self, user: User, invoice_id: int):
-        customer = self._customer(user.id)
-        invoice = self.billing.get_invoice(invoice_id)
+    async def get(self, user: UserRow, invoice_id: int) -> InvoiceRow:
+        customer = await self._customer(user.id)
+        invoice = await self.billing.get_invoice(invoice_id)
         if invoice is None:
             raise not_found("INVOICE_NOT_FOUND", "Invoice not found")
         if invoice.customer_id != customer.id:

@@ -1,8 +1,8 @@
 from typing import Any
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.entities import AuditLog
+from app.repositories.audit_repository import AuditRepository
 
 
 SENSITIVE_KEYS = {"password", "password_hash", "token", "access_token", "refresh_token", "otp", "code_hash"}
@@ -14,8 +14,8 @@ def _redact(data: dict[str, Any] | None) -> dict[str, Any] | None:
     return {key: "[REDACTED]" if key.lower() in SENSITIVE_KEYS else value for key, value in data.items()}
 
 
-def add_audit(
-    session: Session,
+async def add_audit(
+    session: AsyncSession,
     *,
     user_id: int | None,
     action: str,
@@ -24,13 +24,7 @@ def add_audit(
     before: dict[str, Any] | None = None,
     after: dict[str, Any] | None = None,
 ) -> None:
-    session.add(
-        AuditLog(
-            user_id=user_id,
-            action=action,
-            resource_type=resource_type,
-            resource_id=str(resource_id) if resource_id is not None else None,
-            before_data=_redact(before),
-            after_data=_redact(after),
-        )
+    await AuditRepository(session).create(
+        user_id=user_id, action=action, resource_type=resource_type, resource_id=resource_id,
+        before=_redact(before), after=_redact(after),
     )
