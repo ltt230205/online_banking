@@ -76,4 +76,4 @@ app/
   db/
 ```
 
-Giai đoạn hiện tại không tạo router/service giả để tránh khiến skeleton bị hiểu nhầm là implementation hoàn chỉnh.
+Các boundary trên đã được triển khai trong `app/api`, `app/services`, `app/repositories`, `app/schemas` và `app/models`; external bank và notification hiện dùng mock để có thể thay provider sau này.
