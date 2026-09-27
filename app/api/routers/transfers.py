@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_db, require_roles
-from app.models.entities import User
+from app.repositories.rows import UserRow
 from app.schemas.transaction import OtpVerifyRequest, PendingActionResponse, TransactionResponse, TransferRequest
 from app.services.transfer_service import TransferService
 
@@ -11,13 +11,13 @@ router = APIRouter(prefix="/transfers", tags=["Transfers"])
 
 
 @router.post("", response_model=PendingActionResponse, status_code=201)
-def create_transfer(
+async def create_transfer(
     data: TransferRequest,
-    user: User = Depends(require_roles("CUSTOMER")),
-    session: Session = Depends(get_db),
+    user: UserRow = Depends(require_roles("CUSTOMER")),
+    session: AsyncSession = Depends(get_db),
 ) -> PendingActionResponse:
     service = TransferService(session)
-    transaction, code = service.create(user, data)
+    transaction, code = await service.create(user, data)
     return PendingActionResponse(
         transaction_id=transaction.id,
         status=transaction.status,
@@ -27,10 +27,10 @@ def create_transfer(
 
 
 @router.post("/{transaction_id}/verify-otp", response_model=TransactionResponse)
-def verify_transfer(
+async def verify_transfer(
     transaction_id: int,
     data: OtpVerifyRequest,
-    user: User = Depends(require_roles("CUSTOMER")),
-    session: Session = Depends(get_db),
+    user: UserRow = Depends(require_roles("CUSTOMER")),
+    session: AsyncSession = Depends(get_db),
 ) -> TransactionResponse:
-    return TransferService(session).verify_and_execute(user, transaction_id, data.otp)
+    return await TransferService(session).verify_and_execute(user, transaction_id, data.otp)

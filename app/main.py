@@ -1,9 +1,12 @@
-import psycopg
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.routers import accounts, admin, auth, customers, invoices, payees, payments, reports, transactions, transfers
 from app.config import settings
 from app.core.exceptions import AppError, register_exception_handlers
+from app.api.dependencies import get_db
+from app.services.system_service import SystemService
 
 
 app = FastAPI(
@@ -48,17 +51,10 @@ def root() -> dict[str, str]:
 
 
 @app.get("/health", tags=["System"])
-def health() -> dict[str, str]:
+async def health(session: AsyncSession = Depends(get_db)) -> dict[str, str]:
     try:
-        with psycopg.connect(
-            dbname=settings.postgres_db,
-            user=settings.postgres_user,
-            password=settings.postgres_password.get_secret_value(),
-            host=settings.postgres_host,
-            port=settings.postgres_port,
-            connect_timeout=3,
-        ) as connection:
-            connection.execute("SELECT 1").fetchone()
-    except psycopg.Error as exc:
+        if not await SystemService(session).database_is_available():
+            raise AppError("DATABASE_UNAVAILABLE", "Database is unavailable", 503)
+    except SQLAlchemyError as exc:
         raise AppError("DATABASE_UNAVAILABLE", "Database is unavailable", 503) from exc
     return {"status": "ok", "database": "connected"}

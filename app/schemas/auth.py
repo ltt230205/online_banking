@@ -53,6 +53,7 @@ class UserResponse(BaseModel):
 
     id: int
     username: str
-    email: EmailStr
+    # Legacy seed rows use @bank.local; keep the JSON string contract for reads.
+    email: str = Field(json_schema_extra={"format": "email"})
     status: str
     created_at: datetime
