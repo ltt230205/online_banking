@@ -9,13 +9,20 @@ from sqlalchemy import text
 
 
 env = dotenv_values(".env")
-test_database = "online_banking_test"
+test_database = os.environ.get("TEST_POSTGRES_DB", "online_banking_test")
+if not test_database.replace("_", "").isalnum() or not test_database.startswith("online_banking_test"):
+    raise ValueError("TEST_POSTGRES_DB must be an online_banking_test_* identifier")
+test_host = os.environ.get("TEST_POSTGRES_HOST", env.get("POSTGRES_HOST", "localhost"))
+if test_host == "localhost":
+    test_host = "127.0.0.1"  # Avoid an IPv6 localhost timeout with Docker's IPv4 port binding.
+test_port = int(env.get("POSTGRES_PORT", "5433"))
 with psycopg.connect(
     dbname="postgres",
     user=env.get("POSTGRES_USER", "banking"),
     password=env.get("POSTGRES_PASSWORD", "local_dev_change_me"),
-    host=env.get("POSTGRES_HOST", "localhost"),
-    port=int(env.get("POSTGRES_PORT", "5433")),
+    host=test_host,
+    port=test_port,
+    connect_timeout=5,
     autocommit=True,
 ) as connection:
     exists = connection.execute("SELECT 1 FROM pg_database WHERE datname=%s", (test_database,)).fetchone()
@@ -23,6 +30,8 @@ with psycopg.connect(
         connection.execute(f'CREATE DATABASE "{test_database}"')
 
 os.environ["POSTGRES_DB"] = test_database
+os.environ["POSTGRES_HOST"] = test_host
+os.environ["POSTGRES_PORT"] = str(test_port)
 os.environ["APP_ENV"] = "development"
 
 from app.db.base import Base  # noqa: E402
