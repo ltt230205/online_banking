@@ -1,0 +1,27 @@
+flowchart TB
+    Client[Web / Mobile Client] --> API[FastAPI Application]
+    API --> Auth[Authentication + RBAC]
+    Auth --> Routers[Routers]
+    Routers --> Services
+    subgraph Services[Domain Services]
+      AS[Auth]
+      CS[Customer / KYC]
+      ACS[Account]
+      TS[Transfer]
+      PS[Payment / Invoice]
+      OS[OTP]
+      RS[Report]
+      NS[Notification]
+      AUS[Audit]
+      JS[Job]
+    end
+    Services --> Repositories[Repositories]
+    Repositories --> PG[(PostgreSQL)]
+    Services --> Adapters[Integration Adapters]
+    Adapters --> Bank[Mock External Bank]
+    Adapters --> Mail[Email / SMS]
+    Services --> Queue[Celery]
+    Queue --> Redis[(Redis)]
+    Queue --> Worker[Job Worker]
+    Worker --> PG
+    Worker --> Mail

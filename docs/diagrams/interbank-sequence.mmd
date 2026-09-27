@@ -1,0 +1,16 @@
+sequenceDiagram
+    actor C as Customer
+    participant T as Transfer Service
+    participant O as OTP Service
+    participant D as PostgreSQL
+    participant B as External Bank Adapter
+    C->>T: Yêu cầu chuyển liên ngân hàng
+    T->>D: Validate và tạo OTP_REQUIRED
+    T->>O: Gửi OTP
+    C->>T: OTP
+    T->>O: Verify/consume
+    T->>D: Lock source, recheck, PROCESSING
+    T->>B: Gửi lệnh + idempotency key
+    B-->>T: Accepted / rejected
+    T->>D: Debit + ledger + SUCCESS hoặc FAILED
+    T-->>C: Kết quả

@@ -1,0 +1,20 @@
+sequenceDiagram
+    actor C as Customer
+    participant API as Transfer Service
+    participant OTP as OTP Service
+    participant DB as PostgreSQL
+    participant N as Notification
+    C->>API: Tạo chuyển khoản nội bộ
+    API->>DB: Validate KYC/account/balance
+    API->>DB: INSERT transaction OTP_REQUIRED
+    API->>OTP: Generate 6-digit OTP hash
+    OTP->>DB: INSERT otp_codes (5 phút, 5 lần)
+    OTP-->>C: Gửi OTP qua adapter
+    C->>API: Xác nhận OTP
+    API->>OTP: Verify và consume
+    API->>DB: BEGIN; SELECT accounts FOR UPDATE
+    API->>DB: Recheck, debit, credit, insert entries
+    API->>DB: UPDATE transaction SUCCESS; COMMIT
+    API->>DB: INSERT audit_log
+    API->>N: Tạo thông báo
+    API-->>C: Thành công

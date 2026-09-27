@@ -1,0 +1,15 @@
+sequenceDiagram
+    actor C as Customer
+    participant P as Payment Service
+    participant O as OTP Service
+    participant D as PostgreSQL
+    participant N as Notification
+    C->>P: Chọn invoice và account
+    P->>D: Validate; create payment + transaction
+    P->>O: Generate OTP BILL_PAYMENT
+    O-->>C: OTP
+    C->>P: Verify OTP
+    P->>D: BEGIN; lock account + invoice
+    P->>D: Debit; ledger; mark PAID/SUCCESS; COMMIT
+    P->>N: Thông báo kết quả
+    P-->>C: Payment SUCCESS
