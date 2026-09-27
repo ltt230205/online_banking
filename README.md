@@ -43,6 +43,7 @@ Tài liệu chi tiết:
 - [Architecture](docs/ARCHITECTURE.md)
 - [Database Design](docs/DATABASE_DESIGN.md)
 - [Database Dictionary](docs/DATABASE_DICTIONARY.md)
+- [Kịch bản kiểm thử toàn bộ API](docs/API_TEST_SCENARIO.md)
 
 ## Chạy bằng Docker
 
